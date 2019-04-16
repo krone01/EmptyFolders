@@ -1,11 +1,17 @@
 import os
 import shutil
+import argparse
 #from PyQt5.QtWidgets import QLabel, QApplication, QCheckBox
 #from Window import Ui_Dialog
 
 supportedFiles = ".mp3", ".flac", ".aac", ".wav"
 
 pathUnsupportFiles = "UNSUPPORTED"
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--rEmpty', nargs = '?', const = False, type = bool, default = False, help = 'Set this to true if you would like to delete emptied folders [DEFAULT: FALSE]')
+args = parser.parse_args()
+print(args) 
 
 #class AppWindow(QDialog):
 #    def __init__(self):
@@ -20,7 +26,7 @@ pathUnsupportFiles = "UNSUPPORTED"
 #app.exec_()
 
 try:
-    for root, directories, files in os.walk("."):
+    for root, directories, files in os.walk(".", topdown = False):
         for file in files:
             pathOriginal = os.path.join(root, file)
             pathCurrentFile = pathOriginal
@@ -49,6 +55,8 @@ try:
                     print("Creating directory:", pathUnsupportFiles)
                     shutil.move(pathOriginal, pathUnsupportFiles)
                     print(pathOriginal, "moved to", pathUnsupportFiles)
+
+    
 
 except IOError as err:
     print("I/O error: {0}".format(err))
