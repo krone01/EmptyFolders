@@ -2,6 +2,7 @@ import os
 import shutil
 import argparse
 import sys
+import re
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-r', '--removeEmpty', action='store_true', default = False, help = 'Add this flag if you would like to delete emptied folders [DEFAULT: FALSE]')
@@ -38,7 +39,7 @@ def removeEmptyFolders(path):
         print("Deleted Folder:", path)
         os.rmdir(path)
 
-try:
+def prompt():
     while WARNING:
         print("--WARNING--")
         print("This script can be very destructive if ran in the wrong directory.")
@@ -60,26 +61,86 @@ try:
         else:
             sys.exit()
 
+def regexRename(file, root):
+    pattern = '\(\d*\)'
+    result = re.search(pattern, file)
+    
+    pathCurrentFile = os.path.join(root, file)
+
+    if result:
+        print("MATCH", file)
+        a = re.findall(pattern, file)
+        lastOccurence = a[-1]
+        newNumber = lastOccurence
+        newNumber = newNumber.replace('(', '')
+        newNumber = newNumber.replace(')', '')
+        newNumber = int(newNumber)
+        newNumber += 1
+        newNumber = '(' + str(newNumber) + ')'
+        newFileName = file.replace(lastOccurence, newNumber)
+        newPath = os.path.join(root, newFileName)
+        print(newPath)
+        if os.path.isfile(newPath):
+            regexRename(newFileName, root)
+        else:
+            os.rename(pathCurrentFile, newPath)
+    
+    else:
+        name, ext = os.path.splitext(file)
+        name = name + '(1)' + ext
+        newPath = os.path.join(root, name)
+        print(os.path.join(root, name))
+        pathCurrentFile = os.path.join(root, file)
+        print(name)
+        os.rename(pathCurrentFile, newPath)
+
+
+def groupFolders(file, root):
+    ext = os.path.splitext(file)[1]
+    ext = ext.replace('.', '')
+                    
+    pathCurrentFile = os.path.join(root, file)
+    pathExtFolder = os.path.join(START_DIR, ext)
+
+    if os.path.isdir(pathExtFolder):
+        pathNewFile = os.path.join(pathExtFolder, file)
+        #print("File:", file)
+        #print("Current", pathCurrentFile)
+        #print("Extension folder:", pathExtFolder)
+        #print("New destination:", pathNewFile, '\n')
+        if not os.path.isfile(pathNewFile):
+            shutil.move(pathCurrentFile, pathExtFolder)
+            #print(file, "in", root, "moved to", pathExtFolder)
+        else:
+            regexRename(file, root)   
+            #print(file, "already exists in", root, "! Skipping...")
+    
+    else:
+        os.mkdir(pathExtFolder)
+        shutil.move(pathCurrentFile, pathExtFolder)
+        print(file, "in", root, "moved to", pathExtFolder)
+
+
+try:
+    prompt()
 
     for root, directories, files in os.walk(START_DIR, topdown = False):
         for file in files:
             pathRoot = os.path.join(START_DIR, file)
             pathCurrentFile = os.path.join(root, file)
-            #print(pathCurrentFile)
+
             if file.endswith(IGNORED_FILES):
                 print("Skipping", file, "in", root)
 
-            elif file.endswith(SUPPORTED_FILES):
-                #if GROUP_TYPES:
-                    #ext = os.path.splitext(file)[1]
-                    #ext = ext.replace('.', '')
-                    #print(ext)
+            elif file.endswith(SUPPORTED_FILES) or not SUPPORTED_FILES:
+                if GROUP_TYPES:
+                    groupFolders(file, root)
 
-                if not os.path.isfile(pathRoot):
+                elif not os.path.isfile(pathRoot):
                     shutil.move(pathCurrentFile, END_DIR)
-                    print(file, "in", root, "moved to", END_DIR)
-                else:
-                    print(file, "already exists in", root, "! Skipping...")
+                    #print(file, "in", root, "moved to", END_DIR)
+                #else:
+                    #print(file, "already exists in", root, "! Skipping...")
 
     if REMOVE_EMPTY:
         removeEmptyFolders(START_DIR)
