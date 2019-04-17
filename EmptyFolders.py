@@ -12,6 +12,7 @@ parser.add_argument('-s', '--startDir', nargs = '?', type = str, default = '.')
 parser.add_argument('-e', '--endDir', nargs = '?', type = str, default = '.')
 parser.add_argument('-w', '--noWarning', action='store_false', default = True)
 parser.add_argument('-g', '--groupTypes', action='store_true', default = False)
+parser.add_argument('-l', '--logging', action='store_true', default = False)
 flags = parser.parse_args()
 
 START_DIR = os.path.abspath(flags.startDir)
@@ -21,6 +22,7 @@ IGNORED_FILES = tuple(flags.notFiles)
 REMOVE_EMPTY = flags.removeEmpty
 WARNING = flags.noWarning
 GROUP_TYPES = flags.groupTypes
+LOGGING = flags.logging
 
 
 def removeEmptyFolders(path):
@@ -61,14 +63,23 @@ def prompt():
         else:
             sys.exit()
 
-def regexRename(file, root):
+
+
+def regexRename(file, root, originalFile):
     pattern = '\(\d*\)'
     result = re.search(pattern, file)
+    name, ext = os.path.splitext(file)
     
+
     pathCurrentFile = os.path.join(root, file)
+    originalPath = os.path.join(root, originalFile)
+    #print("ORIGINAL", originalPath)
 
     if result:
-        print("MATCH", file)
+        ext = ext.replace('.', '')
+        pathExtFolder = os.path.join(START_DIR, ext)
+
+        #print("MATCH", file)
         a = re.findall(pattern, file)
         lastOccurence = a[-1]
         newNumber = lastOccurence
@@ -77,16 +88,19 @@ def regexRename(file, root):
         newNumber = int(newNumber)
         newNumber += 1
         newNumber = '(' + str(newNumber) + ')'
-        newFileName = file.replace(lastOccurence, newNumber)
-        newPath = os.path.join(root, newFileName)
+        newFileName = file
+        newFileName = newFileName.replace(lastOccurence, newNumber)
+        renamePath = os.path.join(root, newFileName)
+        newPath = os.path.join(pathExtFolder, newFileName)
         print(newPath)
         if os.path.isfile(newPath):
-            regexRename(newFileName, root)
+            regexRename(newFileName, root, originalFile)
         else:
-            os.rename(pathCurrentFile, newPath)
-    
+            os.rename(originalPath, renamePath)
+            groupFolders(newFileName, root)
+
     else:
-        name, ext = os.path.splitext(file)
+        
         name = name + '(1)' + ext
         newPath = os.path.join(root, name)
         print(os.path.join(root, name))
@@ -110,11 +124,16 @@ def groupFolders(file, root):
         #print("New destination:", pathNewFile, '\n')
         if not os.path.isfile(pathNewFile):
             shutil.move(pathCurrentFile, pathExtFolder)
-            #print(file, "in", root, "moved to", pathExtFolder)
-        else:
-            regexRename(file, root)   
+            print(file, "in", root, "moved to", pathExtFolder)
+        elif pathCurrentFile != pathNewFile:
+
+
+            #print("CURRENT", pathCurrentFile)
+            #print("NEW", pathNewFile)
+            regexRename(file, root, file)   
             #print(file, "already exists in", root, "! Skipping...")
-    
+        else:
+            print(file, "already exists in", root, "! Skipping...")
     else:
         os.mkdir(pathExtFolder)
         shutil.move(pathCurrentFile, pathExtFolder)
