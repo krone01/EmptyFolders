@@ -91,30 +91,50 @@ def regexRename(file, root, originalFile):
         newFileName = file
         newFileName = newFileName.replace(lastOccurence, newNumber)
         renamePath = os.path.join(root, newFileName)
-        newPath = os.path.join(pathExtFolder, newFileName)
-        print(newPath)
+        if GROUP_TYPES:
+            newPath = os.path.join(pathExtFolder, newFileName)
+        else:
+            newPath = os.path.join(root, newFileName)
+        #print(newPath)
         if os.path.isfile(newPath):
+            print("RENAMING")
             regexRename(newFileName, root, originalFile)
         else:
             os.rename(originalPath, renamePath)
-            groupFolders(newFileName, root)
+            if GROUP_TYPES:
+                print("RECURSING")
+                print(newFileName)
+                print(root)
+                groupFolders(newFileName, root)
+            #else:
+                #print(newFileName)
+                #print("ASASDASDASD:", root)
+                #sortNonGrouped(newFileName, root)
+
 
     else:
-        
         name = name + '(1)' + ext
-        newPath = os.path.join(root, name)
-        print(os.path.join(root, name))
+        newFileName = os.path.join(root, name)
+        #print(os.path.join(root, name))
         pathCurrentFile = os.path.join(root, file)
-        print(name)
-        os.rename(pathCurrentFile, newPath)
+        #print(name)
+        os.rename(pathCurrentFile, newFileName)
+        if GROUP_TYPES:
+            groupFolders(name, root)
+            print('l')
+        else:
+            #print(newFileName)
+            #print(root)
+            #print(pathCurrentFile)
+            sortNonGrouped(newFileName, root)
 
 
 def groupFolders(file, root):
     ext = os.path.splitext(file)[1]
     ext = ext.replace('.', '')
                     
-    pathCurrentFile = os.path.join(root, file)
     pathExtFolder = os.path.join(START_DIR, ext)
+    pathCurrentFile = os.path.join(root, file)
 
     if os.path.isdir(pathExtFolder):
         pathNewFile = os.path.join(pathExtFolder, file)
@@ -137,7 +157,25 @@ def groupFolders(file, root):
     else:
         os.mkdir(pathExtFolder)
         shutil.move(pathCurrentFile, pathExtFolder)
-        print(file, "in", root, "moved to", pathExtFolder)
+        #print(file, "in", root, "moved to", pathExtFolder)
+
+def sortNonGrouped(file, root):
+    pathRoot = os.path.join(START_DIR, file)
+    pathCurrentFile = os.path.join(root, file)
+    
+    if not os.path.isfile(pathRoot):
+        
+        #print("1 pathCurrentFile", pathCurrentFile)
+        #print("1 pathRoot", pathRoot)
+        shutil.move(pathCurrentFile, END_DIR)
+        #print(file, "in", root, "moved to", END_DIR)
+    elif pathCurrentFile != pathRoot:
+        #print("RUN THAT SHIT")
+        #print("2 pathCurrentFile", pathCurrentFile)
+        #print("2 pathRoot", pathRoot)
+        regexRename(file, root, file)
+    #else:
+        #print(file, "already exists in", root, "! Skipping...")
 
 
 try:
@@ -145,21 +183,15 @@ try:
 
     for root, directories, files in os.walk(START_DIR, topdown = False):
         for file in files:
-            pathRoot = os.path.join(START_DIR, file)
-            pathCurrentFile = os.path.join(root, file)
-
             if file.endswith(IGNORED_FILES):
                 print("Skipping", file, "in", root)
 
             elif file.endswith(SUPPORTED_FILES) or not SUPPORTED_FILES:
                 if GROUP_TYPES:
                     groupFolders(file, root)
-
-                elif not os.path.isfile(pathRoot):
-                    shutil.move(pathCurrentFile, END_DIR)
-                    #print(file, "in", root, "moved to", END_DIR)
-                #else:
-                    #print(file, "already exists in", root, "! Skipping...")
+                else:
+                    sortNonGrouped(file, root)
+                
 
     if REMOVE_EMPTY:
         removeEmptyFolders(START_DIR)
