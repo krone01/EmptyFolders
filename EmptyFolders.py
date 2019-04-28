@@ -188,8 +188,8 @@ try:
     if REMOVE_EMPTY:
         removeEmptyFolders(START_DIR)
 
-    if REMOVE_ROOT and START_DIR is not '.':
-        os.rmdir(START_DIR)    
+    if REMOVE_ROOT and REMOVE_EMPTY and START_DIR is not '.' and START_DIR is not END_DIR:
+        os.rmdir(START_DIR)
     
 
 except IOError as err:
